@@ -1,0 +1,18 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// One row per citizen user id (`X-Aquaguard-User` / session identifier).
+/// `bundle` mirrors the SPA `UserBundle` JSON shape from `citizen-store.ts`.
+model CitizenBundle {
+  userId    String   @id @map("user_id")
+  bundle    Json     @map("bundle")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("citizen_bundles")
+}

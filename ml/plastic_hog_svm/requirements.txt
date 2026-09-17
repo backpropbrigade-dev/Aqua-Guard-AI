@@ -1,0 +1,8 @@
+# Plastic detection — HOG + LinearSVM (offline training; not used by Vite frontend)
+numpy>=1.24
+opencv-python-headless>=4.8
+scikit-image>=0.22
+scikit-learn>=1.3
+roboflow>=1.1
+tqdm>=4.66
+joblib>=1.3

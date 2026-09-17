@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Hybrid Plastic Pollution Demo — Hack Project</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    body { margin:0; font-family:Inter,system-ui,Segoe UI,Arial; display:flex; height:100vh; }
+    #map { flex:1; min-height:0; }
+    #side { width:420px; max-width:50%; padding:12px; box-sizing:border-box; border-left:1px solid #eee; overflow:auto; background:#fafafa; }
+    h2 { margin:8px 0; font-size:16px; }
+    .card { background:white; padding:10px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,.06); margin-bottom:12px; }
+    label { display:block; margin:6px 0 4px; font-size:13px; }
+    button { padding:8px 10px; border-radius:6px; border:0; background:#0b76ef; color:white; cursor:pointer; }
+    input[type=file] { display:block; }
+    canvas { max-width:100%; border:1px dashed #ddd; margin-top:6px; }
+    .row { display:flex; gap:8px; }
+    .small { font-size:12px; color:#555; }
+    .task { padding:8px; border-radius:6px; border:1px solid #eee; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center; }
+    .muted { color:#666; font-size:13px; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="side">
+    <h2>Hybrid Plastic Monitoring — Hack Demo</h2>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong>1) Satellite / Drone Input (demo)</strong>
+        <span class="small">Client-side</span>
+      </div>
+      <label>Upload sample satellite/drone image (jpg/png)</label>
+      <input id="imgfile" type="file" accept="image/*" />
+      <canvas id="imgcanvas" width="320" height="180"></canvas>
+      <div style="margin-top:8px;">
+        <button id="detectBtn">Run Simple Detection</button>
+        <button id="genHotspotsBtn">Generate Hotspots from Image</button>
+      </div>
+      <p class="muted">Detection is a color-threshold demo to simulate AI detection. Replace with a real model (MariNeXt-style) on your server/IBM Z for production.</p>
+    </div>
+
+    <div class="card">
+      <strong>2) Simulated IoT Buoys & Robots</strong>
+      <div style="margin:8px 0;">
+        <button id="addBuoy">Add random buoy</button>
+        <button id="addBoat">Add Cleanbot</button>
+        <button id="startSim">Start Simulation</button>
+        <button id="stopSim">Stop</button>
+      </div>
+      <div id="devicesList"></div>
+    </div>
+
+    <div class="card">
+      <strong>3) Prediction & Dispatch</strong>
+      <p class="small">Simulated forecast shows particle drift over 3 steps (days). Use real ocean currents (NOAA/Copernicus) in production.</p>
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <select id="forecastDays">
+          <option value="1">1 day</option>
+          <option value="3" selected>3 days</option>
+          <option value="7">7 days</option>
+        </select>
+        <button id="runForecast">Run Forecast</button>
+      </div>
+      <div id="forecastLog"></div>
+    </div>
+
+    <div class="card">
+      <strong>4) Crew Dispatch</strong>
+      <div id="taskQueue"></div>
+      <div style="margin-top:8px;">
+        <button id="autoDispatch">Auto-dispatch to top hotspot</button>
+      </div>
+    </div>
+
+    <div style="font-size:12px;color:#444;margin-top:8px">
+      <strong>How to use for a hack submission</strong>
+      <ol style="padding-left:16px">
+        <li>Open this index.html locally or host on GitHub Pages.</li>
+        <li>Show detection, buoys, forecast, then dispatch — present architecture slide & roadmap.</li>
+        <li>Explain how you'd swap simulated parts for real: IBM Z inference endpoint, NOAA currents, Clearbot hardware, LoRa buoys.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- libs -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+
+  <script>
+  // Basic map
+  const map = L.map('map').setView([17.3850,78.4867], 10); // default to Hyderabad (user in India)
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution:'© OpenStreetMap'
+  }).addTo(map);
+
+  // layers
+  const hotspotsLayer = L.layerGroup().addTo(map);
+  const buoysLayer = L.layerGroup().addTo(map);
+  const boatsLayer = L.layerGroup().addTo(map);
+  const forecastLayer = L.layerGroup().addTo(map);
+
+  // state
+  const state = {
+    devices: [], // buoys and boats {id,type,marker,latlng}
+    hotspots: [], // {id,latlng,intensity}
+    simInterval: null
+  };
+
+  // helper id
+  function uid(prefix='id'){ return prefix + Math.random().toString(36).slice(2,9); }
+
+  // ---------- Image upload & simple detection ----------
+  const imgfile = document.getElementById('imgfile');
+  const canvas = document.getElementById('imgcanvas');
+  const ctx = canvas.getContext('2d');
+  let lastImage = null;
+
+  imgfile.addEventListener('change', e => {
+    const f = e.target.files[0];
+    if(!f) return;
+    const img = new Image();
+    img.onload = () => {
+      const maxW = 320, maxH = 180;
+      let w = img.width, h = img.height;
+      const scale = Math.min(maxW/w, maxH/h, 1);
+      canvas.width = w * scale;
+      canvas.height = h * scale;
+      ctx.drawImage(img,0,0,canvas.width,canvas.height);
+      lastImage = img;
+    };
+    img.src = URL.createObjectURL(f);
+  });
+
+  // Very simple color-threshold "plastic detection" demo:
+  // Looks for bright white-ish pixels (floating plastic often appears bright)
+  document.getElementById('detectBtn').addEventListener('click', () => {
+    if(!canvas.width) return alert('Upload an image first');
+    const im = ctx.getImageData(0,0,canvas.width,canvas.height);
+    const data = im.data;
+    const detected = [];
+    for(let y=0;y<canvas.height;y+=4){
+      for(let x=0;x<canvas.width;x+=4){
+        const i = (y*canvas.width + x)*4;
+        const r=data[i], g=data[i+1], b=data[i+2];
+        // simple heuristic: bright & low saturation -> candidate plastic
+        const light = (r+g+b)/3;
+        const sat = 1 - (Math.min(r,g,b)/ (light+1));
+        if(light > 200 && sat < 0.35) {
+          detected.push({x,y});
+          // draw small red dot
+          ctx.fillStyle='rgba(255,0,0,0.8)';
+          ctx.fillRect(x-1,y-1,3,3);
+        }
+      }
+    }
+    alert('Detection (demo) found ' + detected.length + ' candidate pixels. Use a real model for production.');
+  });
+
+  // Generate hotspots by sampling canvas detections and projecting to map center area
+  document.getElementById('genHotspotsBtn').addEventListener('click', () => {
+    hotspotsLayer.clearLayers();
+    state.hotspots = [];
+    // create N hotspots around map center
+    const center = map.getCenter();
+    const N = 5 + Math.floor(Math.random()*6);
+    for(let i=0;i<N;i++){
+      const ang = Math.random()*Math.PI*2;
+      const rKm = 1 + Math.random()*7; // within ~7km radius
+      const ll = destinationLatLng(center.lat, center.lng, rKm, ang);
+      const intensity = Math.round(30 + Math.random()*70);
+      addHotspot(ll, intensity);
+    }
+    map.fitBounds(hotspotsLayer.getBounds().pad(0.6));
+  });
+
+  // add hotspot marker
+  function addHotspot(latlng, intensity=50){
+    const id = uid('hot_');
+    const m = L.circleMarker(latlng, {
+      radius: 6 + intensity/20,
+      color: intensity>60 ? '#d33' : '#f39c12',
+      fillColor: intensity>60 ? '#d33' : '#f39c12',
+      fillOpacity: 0.6
+    }).bindPopup(`<b>Hotspot</b><br/>Intensity: ${intensity}`).addTo(hotspotsLayer);
+    state.hotspots.push({id, latlng, intensity, marker:m});
+  }
+
+  // ---------- Buoys & Boats ----------
+  function addDevice(type='buoy'){
+    const center = map.getCenter();
+    const jitter = 0.02;
+    const lat = center.lat + (Math.random()-0.5)*jitter*10;
+    const lng = center.lng + (Math.random()-0.5)*jitter*10;
+    const iconHtml = type==='buoy' ? '🔵' : '🛥';
+    const marker = L.marker([lat,lng], {
+      title:type
+    }).addTo(type==='buoy' ? buoysLayer : boatsLayer);
+    marker.bindPopup(`${iconHtml} <b>${type}</b><br/>${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+    const id = uid(type[0] + '_');
+    state.devices.push({id,type,marker,latlng:[lat,lng]});
+    renderDevices();
+  }
+
+  function renderDevices(){
+    const el = document.getElementById('devicesList');
+    el.innerHTML = '';
+    state.devices.forEach(d=>{
+      const div = document.createElement('div');
+      div.className='task';
+      div.innerHTML = `<div><strong>${d.type}</strong> <div class="small">${d.id}</div></div>
+                       <div><button data-id="${d.id}" class="moveBtn">Ping</button></div>`;
+      el.appendChild(div);
+    });
+    el.querySelectorAll('.moveBtn').forEach(b=>{
+      b.addEventListener('click', ev=>{
+        const id = ev.target.dataset.id;
+        const dev = state.devices.find(x=>x.id===id);
+        if(dev){
+          dev.marker.openPopup();
+          // simulate small movement
+          const nlat = dev.latlng[0] + (Math.random()-0.5)*0.001;
+          const nlng = dev.latlng[1] + (Math.random()-0.5)*0.001;
+          dev.latlng = [nlat,nlng];
+          dev.marker.setLatLng(dev.latlng).bindPopup(`${dev.type} ${dev.id}<br/>${nlat.toFixed(4)}, ${nlng.toFixed(4)}`);
+        }
+      });
+    });
+  }
+
+  document.getElementById('addBuoy').addEventListener('click', ()=> addDevice('buoy'));
+  document.getElementById('addBoat').addEventListener('click', ()=> addDevice('boat'));
+
+  // ---------- Simulation loop ----------
+  document.getElementById('startSim').addEventListener('click', ()=> {
+    if(state.simInterval) return;
+    state.simInterval = setInterval(simTick, 1500);
+  });
+  document.getElementById('stopSim').addEventListener('click', ()=> {
+    clearInterval(state.simInterval); state.simInterval = null;
+  });
+
+  function simTick(){
+    // move buoys and boats slightly influenced by vector field (currents)
+    state.devices.forEach(d=>{
+      const [lat,lng] = d.latlng;
+      const v = currentVector(lat,lng);
+      const speed = d.type==='buoy' ? 0.0003 : 0.0006; // boats move faster
+      const nlat = lat + v.vy * speed;
+      const nlng = lng + v.vx * speed;
+      d.latlng = [nlat, nlng];
+      d.marker.setLatLng(d.latlng);
+      d.marker.getPopup().setContent(`${d.type} ${d.id}<br/>${nlat.toFixed(4)}, ${nlng.toFixed(4)}`);
+    });
+
+    // gradually diffuse hotspots (simulate cleanup / natural spread)
+    state.hotspots.forEach(h=>{
+      h.intensity = Math.max(5, h.intensity - Math.random()*4);
+      h.marker.setStyle({radius:6 + h.intensity/20, fillOpacity:0.5});
+      h.marker.bindPopup(`<b>Hotspot</b><br/>Intensity: ${Math.round(h.intensity)}`);
+    });
+
+    renderDevices();
+  }
+
+  // ---------- Forecast (particle advection) ----------
+  document.getElementById('runForecast').addEventListener('click', ()=> {
+    forecastLayer.clearLayers();
+    document.getElementById('forecastLog').innerHTML = '';
+    const days = Number(document.getElementById('forecastDays').value);
+    // pick top hotspots as seeds
+    const seeds = state.hotspots.slice().sort((a,b)=>b.intensity-a.intensity).slice(0,5);
+    if(seeds.length===0) return alert('Generate hotspots first (use "Generate Hotspots")');
+
+    const particles = [];
+    seeds.forEach(s => {
+      const n = Math.max(6, Math.round(s.intensity/10));
+      for(let i=0;i<n;i++){
+        // jitter around hotspot
+        const lat = s.latlng.lat + (Math.random()-0.5)*0.01;
+        const lng = s.latlng.lng + (Math.random()-0.5)*0.01;
+        particles.push({lat,lng});
+      }
+    });
+
+    // advance particles for days steps
+    for(let step=0; step<days; step++){
+      particles.forEach(p=>{
+        const v = currentVector(p.lat,p.lng);
+        p.lat += v.vy * 0.01 * (1 + Math.random()*0.6);
+        p.lng += v.vx * 0.01 * (1 + Math.random()*0.6);
+      });
+      // show summary
+      const coords = particles.map(p=>[p.lat,p.lng]);
+      const centroid = centroidLatLng(coords);
+      const marker = L.circleMarker(centroid, {radius:8 + step*2, color:'#1976d2', fillColor:'#1976d2', fillOpacity:0.35}).addTo(forecastLayer);
+      marker.bindPopup(`<b>Forecast day ${step+1}</b><br/>Predicted accumulation center`);
+      document.getElementById('forecastLog').innerHTML += `<div class="small">Day ${step+1}: predicted center ${centroid[0].toFixed(4)}, ${centroid[1].toFixed(4)}</div>`;
+    }
+
+    // highlight predicted hotspot area as polygon (convex hull)
+    try {
+      const hull = turf.convex(turf.points(particles.map(p=>[p.lng,p.lat])));
+      if(hull) {
+        const coords = hull.geometry.coordinates[0].map(c=>[c[1],c[0]]);
+        L.polygon(coords, {color:'#1976d2', weight:1, dashArray:'4 4'}).addTo(forecastLayer);
+      }
+    } catch(err){}
+  });
+
+  // ---------- Auto dispatch (simple) ----------
+  document.getElementById('autoDispatch').addEventListener('click', ()=> {
+    const top = state.hotspots.slice().sort((a,b)=>b.intensity-a.intensity)[0];
+    if(!top) return alert('No hotspots — generate first.');
+    // find nearest boat
+    const boats = state.devices.filter(d=>d.type==='boat');
+    if(boats.length===0) {
+      // create a boat and send it
+      addDevice('boat');
+    }
+    const nearest = (state.devices.filter(d=>d.type==='boat').reduce((best,d)=>{
+      const dist = haversine(d.latlng, [top.latlng.lat, top.latlng.lng]);
+      if(!best || dist < best.dist) return {d,dist}; return best;
+    }, null) || {}).d;
+    if(nearest){
+      nearest.marker.bindPopup('Dispatching to hotspot...').openPopup();
+      // animate movement directly to hotspot
+      nearest.marker.setLatLng([top.latlng.lat, top.latlng.lng]);
+      nearest.latlng = [top.latlng.lat, top.latlng.lng];
+      // add task to queue
+      addTask(
+        `Cleanup at ${top.latlng.lat.toFixed(4)}, ${top.latlng.lng.toFixed(4)}`,
+        `Assigned to ${nearest.id}`
+      );
+      top.intensity = Math.max(1, top.intensity - 30); // simulate cleanup
+      top.marker.setStyle({radius:6 + top.intensity/20});
+    }
+  });
+
+  function addTask(title, detail){
+    const q = document.getElementById('taskQueue');
+    const div = document.createElement('div');
+    div.className='task';
+    div.innerHTML = `<div><strong>${title}</strong><div class="small">${detail}</div></div><div><button onclick="this.closest('.task').remove()">Done</button></div>`;
+    q.appendChild(div);
+  }
+
+  // ---------- Utilities ----------
+  function destinationLatLng(lat, lng, km, angleRad){
+    // approximate: 1 deg lat ~ 111km, lon scale by cos(lat)
+    const dLat = (km * Math.cos(angleRad)) / 111;
+    const dLng = (km * Math.sin(angleRad)) / (111 * Math.cos(lat * Math.PI/180));
+    return {lat: lat + dLat, lng: lng + dLng};
+  }
+
+  // tiny vector field representing currents (deterministic + noise)
+  function currentVector(lat, lng){
+    // create simple pattern: eastwards current near center, swirling further
+    const cx = map.getCenter().lat, cy = map.getCenter().lng;
+    const dx = lat - cx, dy = lng - cy;
+    const vx = 0.5 * Math.sin(dy*5) + 0.3*Math.cos(dx*3);
+    const vy = 0.4 * Math.cos(dx*5) - 0.25*Math.sin(dy*4);
+    // add small deterministic noise based on coords
+    const noise = pseudoNoise(lat, lng);
+    return {vx: vx*0.6 + noise.x*0.2, vy: vy*0.6 + noise.y*0.2};
+  }
+
+  function pseudoNoise(a,b){
+    const v = Math.sin(a*12.9898 + b*78.233) * 43758.5453;
+    return {x: (v - Math.floor(v)), y: ((v*1.3) - Math.floor(v*1.3))};
+  }
+
+  function centroidLatLng(coords) {
+    if(coords.length===0) return [map.getCenter().lat, map.getCenter().lng];
+    const s = coords.reduce((acc,c)=>[acc[0]+c[0],acc[1]+c[1]],[0,0]);
+    return [s[0]/coords.length, s[1]/coords.length];
+  }
+
+  function haversine(a,b){
+    const toR = Math.PI/180;
+    const R=6371;
+    const dLat = (b[0]-a[0])*toR;
+    const dLon = (b[1]-a[1])*toR;
+    const lat1 = a[0]*toR, lat2 = b[0]*toR;
+    const sinDlat = Math.sin(dLat/2), sinDlon = Math.sin(dLon/2);
+    const x = sinDlat*sinDlat + Math.cos(lat1)*Math.cos(lat2)*sinDlon*sinDlon;
+    return 2*R*Math.asin(Math.min(1,Math.sqrt(x)));
+  }
+
+  // small helper to expose addDevice from dispatch HTML button (since closures)
+  window.addDevice = addDevice;
+
+  // initial sample hotspot
+  setTimeout(()=> {
+    const c = map.getCenter();
+    addHotspot({lat:c.lat+0.02, lng:c.lng+0.02}, 82);
+    addHotspot({lat:c.lat-0.03, lng:c.lng-0.015}, 54);
+    addHotspot({lat:c.lat+0.04, lng:c.lng-0.07}, 40);
+  },300);
+
+  </script>
+</body>
+</html>
