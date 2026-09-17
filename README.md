@@ -28,7 +28,7 @@ Combining AI-powered image analysis, geospatial mapping, UAV operations, mission
 
 ## 🌐 Live Demo
 
-🔗 [Demo URL]
+🔗 [https://aquaguard-aii.netlify.app/]
 
 ---
 
