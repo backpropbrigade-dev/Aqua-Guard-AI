@@ -7,12 +7,7 @@ AquaGuard AI is a technology-driven environmental platform focused on identifyin
 ---
 
 ## 📖 About The Project
-
-AquaGuard AI is an environmental protection and monitoring ecosystem showcased by the **ISTE Student Chapter, Mohan Babu University**. The platform brings together citizens, NGOs, authorities, and field teams to create a coordinated response network for tackling water pollution and plastic waste.
-
 Combining AI-powered image analysis, geospatial mapping, UAV operations, mission management workflows, and environmental analytics, AquaGuard AI helps transform pollution reports into actionable cleanup efforts while improving collaboration between stakeholders.
-
-This repository contains the source code, platform modules, and supporting resources associated with the AquaGuard AI ecosystem.
 
 ---
 
@@ -192,31 +187,3 @@ Track pollution trends, mission performance, regional impact metrics, and operat
 * SQLite Database (Optional)
 * Environmental Datasets
 
----
-
-## 👥 Team
-
-| Team Member               | LinkedIn Profile                                         | GitHub Profile                               |
-| ------------------------- | -------------------------------------------------------- | -------------------------------------------- |
-| **Shaik Saniya**          | [LinkedIn](https://www.linkedin.com/in/shaiksaniya1421/) | [GitHub](https://github.com/shaiksaniya1421) |
-| **Thanuja Thota**         | [LinkedIn](https://www.linkedin.com/in/thanujathota/)    | [GitHub](https://github.com/Thanuja-0911)    |
-| **Boya Teja Srinivasulu** | [LinkedIn](https://www.linkedin.com/in/boya-teja/)       | [GitHub](https://github.com/Tejasrinivasulu) |
-| **Sudharshan**            | [LinkedIn](https://www.linkedin.com/in/sudharshan1695/)  | [GitHub](https://github.com/Sudharshan2516/) |
-
-
-
-## 🌟 ISTE Showcase
-
-AquaGuard AI represents a student-led effort to apply emerging technologies toward environmental sustainability and conservation. Through the ISTE Student Chapter showcase, the project highlights how technology can be leveraged to create practical solutions for ecological challenges.
-
-The platform demonstrates the potential of combining artificial intelligence, mapping technologies, aerial monitoring systems, and collaborative community participation to drive positive environmental outcomes and support long-term environmental stewardship.
-
----
-
-<div align="center">
-
-### Developed with ❤️ by [Team Name]
-
-**Protecting Waterways Through Technology & Innovation**
-
-</div>
