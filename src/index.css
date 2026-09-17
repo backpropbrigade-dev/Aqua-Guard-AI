@@ -1,0 +1,360 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* AquaGuard Pro — deep slate neutrals, teal primary, warm amber secondary */
+  :root {
+    --background: 220 26% 97%;
+    --foreground: 222 47% 11%;
+
+    --card: 220 24% 99%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 199 89% 38%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 32 95% 44%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 220 18% 93%;
+    --muted-foreground: 220 12% 40%;
+
+    --accent: 199 45% 94%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 16% 88%;
+    --input: 220 16% 88%;
+    --ring: 199 89% 38%;
+
+    --radius: 0.875rem;
+
+    --ocean-deep: 205 70% 22%;
+    --ocean-mid: 199 78% 36%;
+    --ocean-light: 192 85% 45%;
+    --aqua: 172 55% 38%;
+    --aqua-light: 172 40% 92%;
+    --foam: 210 35% 97%;
+
+    --sidebar-background: 222 28% 98%;
+    --sidebar-foreground: 222 30% 18%;
+    --sidebar-primary: 199 89% 38%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 199 35% 94%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-border: 220 16% 90%;
+    --sidebar-ring: 199 89% 38%;
+
+    /* Leaflet / map accents (match primary hue) */
+    --map-user-fill: #0d7fa3;
+    --map-user-stroke: #ffffff;
+    --map-user-ring: #38bdf8;
+  }
+
+  .dark {
+    --background: 222 47% 6%;
+    --foreground: 210 40% 96%;
+
+    --card: 222 40% 9%;
+    --card-foreground: 210 40% 96%;
+
+    --popover: 222 44% 8%;
+    --popover-foreground: 210 40% 96%;
+
+    --primary: 188 86% 48%;
+    --primary-foreground: 222 47% 6%;
+
+    --secondary: 38 92% 54%;
+    --secondary-foreground: 222 47% 8%;
+
+    --muted: 222 32% 14%;
+    --muted-foreground: 215 20% 62%;
+
+    --accent: 222 35% 14%;
+    --accent-foreground: 210 40% 96%;
+
+    --destructive: 0 62% 48%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 222 28% 16%;
+    --input: 222 28% 16%;
+    --ring: 188 86% 48%;
+
+    --ocean-deep: 210 70% 12%;
+    --ocean-mid: 199 70% 42%;
+    --ocean-light: 188 80% 55%;
+    --aqua: 172 50% 42%;
+    --aqua-light: 172 25% 16%;
+    --foam: 222 35% 10%;
+
+    --sidebar-background: 222 44% 7%;
+    --sidebar-foreground: 210 35% 92%;
+    --sidebar-primary: 188 86% 48%;
+    --sidebar-primary-foreground: 222 47% 6%;
+    --sidebar-accent: 222 32% 12%;
+    --sidebar-accent-foreground: 210 40% 96%;
+    --sidebar-border: 222 28% 14%;
+    --sidebar-ring: 188 86% 48%;
+
+    --map-user-fill: #22d3ee;
+    --map-user-stroke: #0f172a;
+    --map-user-ring: #67e8f9;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  ::selection {
+    background-color: hsl(var(--primary) / 0.22);
+    color: hsl(var(--foreground));
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-background/75 backdrop-blur-xl border border-border/55 shadow-sm;
+  }
+
+  .glass-card {
+    @apply bg-card/70 backdrop-blur-xl border border-border/45 shadow-lg;
+  }
+
+  /** Premium surface — dashboard cards */
+  .surface-pro {
+    @apply rounded-2xl border border-border/50 bg-card/90 shadow-md shadow-black/[0.03] dark:shadow-black/20 backdrop-blur-sm;
+  }
+
+  /** Brand mesh for heroes */
+  .mesh-hero {
+    background:
+      radial-gradient(ellipse 100% 80% at 0% -20%, hsl(var(--primary) / 0.16), transparent 50%),
+      radial-gradient(ellipse 80% 60% at 100% 0%, hsl(var(--secondary) / 0.12), transparent 45%),
+      radial-gradient(ellipse 60% 40% at 50% 100%, hsl(var(--ocean-light) / 0.08), transparent 50%);
+  }
+
+  .dark .mesh-hero {
+    background:
+      radial-gradient(ellipse 100% 80% at 0% -20%, hsl(var(--primary) / 0.2), transparent 50%),
+      radial-gradient(ellipse 80% 60% at 100% 0%, hsl(var(--secondary) / 0.08), transparent 45%),
+      radial-gradient(ellipse 60% 40% at 50% 100%, hsl(var(--ocean-mid) / 0.12), transparent 50%);
+  }
+
+  .text-gradient-brand {
+    @apply bg-gradient-to-r from-primary via-ocean-light to-secondary bg-clip-text text-transparent;
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(3deg); }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes wave {
+  0% { transform: translateX(0) translateY(0); }
+  25% { transform: translateX(-5px) translateY(-8px); }
+  50% { transform: translateX(0) translateY(-12px); }
+  75% { transform: translateX(5px) translateY(-8px); }
+  100% { transform: translateX(0) translateY(0); }
+}
+
+@keyframes ripple {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+@keyframes scan-line {
+  0% { top: 10%; }
+  100% { top: 85%; }
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+@keyframes blob {
+  0%, 100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+  50% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
+}
+
+/* Landing hero — UAV patrol + scan shimmer */
+@keyframes hero-drone-patrol {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(-7deg);
+  }
+  33% {
+    transform: translate3d(18px, -28px, 0) rotate(5deg);
+  }
+  66% {
+    transform: translate3d(-14px, -14px, 0) rotate(-4deg);
+  }
+}
+
+@keyframes hero-drone-patrol-sm {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(-5deg);
+  }
+  50% {
+    transform: translate3d(10px, -16px, 0) rotate(6deg);
+  }
+}
+
+@keyframes hero-drone-scan-oval {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scaleX(1);
+  }
+  50% {
+    opacity: 0.65;
+    transform: scaleX(1.15);
+  }
+}
+
+@keyframes hero-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-drone-patrol,
+  .hero-drone-patrol-sm,
+  .hero-drone-scan-oval {
+    animation: none !important;
+  }
+
+  .hero-drone-wrap {
+    transform: none !important;
+  }
+}
+
+.hero-drone-patrol {
+  animation: hero-drone-patrol 9s ease-in-out infinite;
+  will-change: transform;
+}
+
+.hero-drone-patrol-sm {
+  animation: hero-drone-patrol-sm 7s ease-in-out infinite;
+  will-change: transform;
+}
+
+.hero-drone-scan-oval {
+  animation: hero-drone-scan-oval 2.4s ease-in-out infinite;
+  transform-origin: center;
+}
+
+/* Leaflet: keep below modals / sticky header */
+.leaflet-container {
+  z-index: 0;
+}
+.leaflet-popup-content-wrapper {
+  border-radius: 0.75rem;
+}
+
+/* Custom “you are here” map pin (uses theme --map-user-* variables) */
+.leaflet-div-icon.aquaguard-map-user-icon {
+  border: none !important;
+  background: transparent !important;
+}
+.aquaguard-map-user-pin {
+  position: relative;
+  width: 28px;
+  height: 38px;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.35));
+}
+.aquaguard-map-user-pin::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--map-user-fill);
+  border: 3px solid var(--map-user-stroke);
+  box-sizing: border-box;
+}
+.aquaguard-map-user-pin::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 14px;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-top: 14px solid var(--map-user-fill);
+}
+
+.leaflet-div-icon.aquaguard-hotspot-icon {
+  border: none !important;
+  background: transparent !important;
+}
+.aquaguard-hotspot-pin {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: white;
+  border: 3px solid var(--pin-color, #22c55e);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  line-height: 1;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+}
+
+.leaflet-div-icon.aquaguard-drone-icon {
+  border: none !important;
+  background: transparent !important;
+}
+.aquaguard-drone-marker {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.35));
+  animation: aquaguard-drone-pulse 2s ease-in-out infinite;
+}
+@keyframes aquaguard-drone-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
